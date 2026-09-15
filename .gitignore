@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.json.tmp
+analytics.json
+bot-config.json
+levels.json
