@@ -41,6 +41,10 @@ const commands = [
     .addSubcommand((sub) => sub.setName('react').setDescription('React with an emoji whenever someone mentions you')
       .addStringOption((option) => option.setName('emoji').setDescription('Emoji, custom emoji ID, or type "off" to remove').setRequired(true)))
     .addSubcommand((sub) => sub.setName('respond').setDescription('Set an automated reply message when someone mentions you')),
+  new SlashCommandBuilder().setName('move').setDescription('Mass voice channel relocation tools').setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers).setDMPermission(false)
+    .addSubcommand((sub) => sub.setName('all').setDescription('Move members in voice channels to a destination channel')
+      .addChannelOption((option) => option.setName('target').setDescription('Destination voice channel').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(true))
+      .addChannelOption((option) => option.setName('from').setDescription('Source voice channel (leave blank to move everyone across all VCs)').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(false))),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
