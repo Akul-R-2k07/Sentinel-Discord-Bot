@@ -1,12 +1,11 @@
 {
-  "name": "dc-bot",
+  "name": "discord-purge-bot",
   "version": "1.0.0",
-  "description": "Discord Bot",
+  "description": "Discord purge bot using discord.js v14",
   "main": "index.js",
   "scripts": {
     "deploy": "node deploy-commands.js",
-    "start": "node index.js",
-    "push": "git add . && git commit -m \"update bot\" && git push"
+    "start": "node index.js"
   },
   "dependencies": {
     "discord.js": "^14.14.1",

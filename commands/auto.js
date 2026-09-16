@@ -1,50 +1,72 @@
-const { getConfig, saveConfig } = require('../utils/storage');
+const {
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder,
+} = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+
+const configPath = path.join(__dirname, '..', 'bot-config.json');
+
+function getGuildConfig(guildId) {
+  if (!fs.existsSync(configPath)) {
+    fs.writeFileSync(configPath, '{}', 'utf8');
+  }
+  const data = JSON.parse(fs.readFileSync(configPath, 'utf8') || '{}');
+  if (!data[guildId]) {
+    data[guildId] = { valli: { active: false }, autoReact: {}, autoRespond: {} };
+  }
+  if (!data[guildId].autoRespond) {
+    data[guildId].autoRespond = {};
+  }
+  if (!data[guildId].autoReact) {
+    data[guildId].autoReact = {};
+  }
+  return { allData: data, guildConfig: data[guildId] };
+}
 
 module.exports = {
   name: 'auto',
   async execute(interaction) {
-    const subcommand = interaction.options.getSubcommand();
+    const sub = interaction.options.getSubcommand();
 
-    if (subcommand === 'react') {
-      const emojiInput = interaction.options.getString('emoji').trim();
-      const config = getConfig();
+    if (sub === 'respond') {
+      const { guildConfig } = getGuildConfig(interaction.guild.id);
+      const existingMessage = guildConfig.autoRespond[interaction.user.id] || '';
 
-      if (!config[interaction.guild.id]) config[interaction.guild.id] = {};
-      if (!config[interaction.guild.id].autoReact) config[interaction.guild.id].autoReact = {};
+      const modal = new ModalBuilder()
+        .setCustomId('auto_respond_modal')
+        .setTitle('Auto Respond Setup');
 
-      // Disable/remove option
-      if (['off', 'remove', 'clear', 'none', 'disable'].includes(emojiInput.toLowerCase())) {
-        delete config[interaction.guild.id].autoReact[interaction.user.id];
-        saveConfig();
-        return interaction.reply({
-          content: '✅ Removed your auto-reaction preference.',
-          ephemeral: true,
-        });
+      const messageInput = new TextInputBuilder()
+        .setCustomId('auto_respond_text')
+        .setLabel('Message when someone mentions you')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Type your response here (or type "off" / leave blank to disable)...')
+        .setValue(existingMessage)
+        .setMaxLength(1000)
+        .setRequired(false);
+
+      const actionRow = new ActionRowBuilder().addComponents(messageInput);
+      modal.addComponents(actionRow);
+
+      return interaction.showModal(modal);
+    }
+
+    if (sub === 'react') {
+      const emoji = interaction.options.getString('emoji');
+      const { allData, guildConfig } = getGuildConfig(interaction.guild.id);
+
+      if (emoji.toLowerCase() === 'off') {
+        delete guildConfig.autoReact[interaction.user.id];
+        fs.writeFileSync(configPath, JSON.stringify(allData, null, 2));
+        return interaction.reply({ content: '✅ Removed your auto-reaction.', ephemeral: true });
       }
 
-      // Extract custom emoji ID if pasted as <:name:id> or <a:name:id>
-      const customEmojiMatch = emojiInput.match(/<?(?:a)?:?\w{2,32}:(\d{17,20})>?/);
-      const targetEmoji = customEmojiMatch ? customEmojiMatch[1] : emojiInput;
-
-      const reply = await interaction.reply({
-        content: `Testing emoji: ${emojiInput}...`,
-        fetchReply: true,
-      });
-
-      try {
-        await reply.react(targetEmoji);
-
-        config[interaction.guild.id].autoReact[interaction.user.id] = targetEmoji;
-        saveConfig();
-
-        return interaction.editReply({
-          content: `✅ Successfully set! Whenever someone mentions you, I will react with ${emojiInput}. (Type \`/auto react emoji:off\` to remove)`,
-        });
-      } catch (err) {
-        return interaction.editReply({
-          content: `❌ Could not use that emoji. Please make sure it is a valid standard Unicode emoji or a custom emoji from a server I am in.`,
-        });
-      }
+      guildConfig.autoReact[interaction.user.id] = emoji;
+      fs.writeFileSync(configPath, JSON.stringify(allData, null, 2));
+      return interaction.reply({ content: `✅ Auto-react set to: ${emoji}`, ephemeral: true });
     }
   },
 };

@@ -1,58 +1,54 @@
-const { EmbedBuilder } = require('discord.js');
-const { getConfig } = require('../utils/storage');
-const { logMessageActivity, isMod, addXP } = require('../utils/helpers');
+const fs = require('fs');
+const path = require('path');
 
-const chatCooldowns = new Map();
+const configPath = path.join(__dirname, '..', 'bot-config.json');
+const cooldowns = new Map();
+const COOLDOWN_TIME = 10000; // 10 seconds cooldown per user to prevent ping spam
 
 module.exports = {
   name: 'messageCreate',
   async execute(message) {
-    if (!message.guild || message.author.bot) return;
+    if (message.author.bot || !message.guild) return;
+    if (message.mentions.users.size === 0) return;
 
-    // 1. AUTO REACT ON USER MENTION
-    if (message.mentions.users.size > 0) {
-      const config = getConfig();
-      const autoReacts = config[message.guild.id]?.autoReact;
+    if (!fs.existsSync(configPath)) return;
+    const data = JSON.parse(fs.readFileSync(configPath, 'utf8') || '{}');
+    const guildConfig = data[message.guild.id];
+    if (!guildConfig) return;
 
-      if (autoReacts) {
-        for (const [userId] of message.mentions.users) {
-          if (userId === message.author.id) continue;
+    const autoRespond = guildConfig.autoRespond || {};
+    const autoReact = guildConfig.autoReact || {};
 
-          const preferredEmoji = autoReacts[userId];
-          if (preferredEmoji) {
-            message.react(preferredEmoji).catch(() => {});
-          }
+    for (const [userId, targetUser] of message.mentions.users) {
+      // Ignore if a user mentioned themselves
+      if (userId === message.author.id) continue;
+
+      // Auto Reaction Trigger
+      if (autoReact[userId]) {
+        try {
+          await message.react(autoReact[userId]);
+        } catch {
+          // Ignored if reaction fails or bot lacks permissions
         }
       }
-    }
 
-    // 2. Log message activity to cache
-    logMessageActivity(message.guild.id, message.author.id, message.channel.id);
+      // Auto Response Trigger
+      if (autoRespond[userId]) {
+        const now = Date.now();
+        const lastTriggered = cooldowns.get(userId) || 0;
 
-    // 3. Valli Mode Check
-    const config = getConfig();
-    const guildData = config[message.guild.id]?.valli;
-    if (guildData?.active && guildData?.roleId && !isMod(message.member)) {
-      if (!message.member.roles.cache.has(guildData.roleId)) {
-        await message.member.roles.add(guildData.roleId).catch(() => {});
-      }
-    }
+        // Skip if still on cooldown
+        if (now - lastTriggered < COOLDOWN_TIME) continue;
+        cooldowns.set(userId, now);
 
-    // 4. Rate-limited Chat XP (1 min cooldown)
-    const cooldownKey = `${message.guild.id}-${message.author.id}`;
-    const nextAllowedTime = chatCooldowns.get(cooldownKey) || 0;
-
-    if (Date.now() >= nextAllowedTime) {
-      chatCooldowns.set(cooldownKey, Date.now() + 60 * 1000);
-
-      const xpGained = Math.floor(Math.random() * 11) + 15;
-      const result = addXP(message.guild.id, message.author.id, xpGained);
-
-      if (result.leveledUp) {
-        const levelEmbed = new EmbedBuilder()
-          .setColor('#2ECC71')
-          .setDescription(`🎉 Congrats ${message.author}, you reached **Level ${result.level}**!`);
-        message.channel.send({ embeds: [levelEmbed] }).catch(() => {});
+        try {
+          await message.reply({
+            content: `💬 **${targetUser.displayName}**:\n${autoRespond[userId]}`,
+            allowedMentions: { parse: [], repliedUser: true },
+          });
+        } catch (err) {
+          console.error('Failed to reply with auto-response:', err);
+        }
       }
     }
   },

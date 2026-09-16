@@ -39,7 +39,8 @@ const commands = [
       .addIntegerOption((option) => option.setName('hours_ago').setDescription('Only delete messages within X hours').setMinValue(1))),
   new SlashCommandBuilder().setName('auto').setDescription('Automated user preferences').setDMPermission(false)
     .addSubcommand((sub) => sub.setName('react').setDescription('React with an emoji whenever someone mentions you')
-      .addStringOption((option) => option.setName('emoji').setDescription('Emoji, custom emoji ID, or type "off" to remove').setRequired(true))),
+      .addStringOption((option) => option.setName('emoji').setDescription('Emoji, custom emoji ID, or type "off" to remove').setRequired(true)))
+    .addSubcommand((sub) => sub.setName('respond').setDescription('Set an automated reply message when someone mentions you')),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
