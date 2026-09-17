@@ -45,6 +45,10 @@ const commands = [
     .addSubcommand((sub) => sub.setName('all').setDescription('Move members in voice channels to a destination channel')
       .addChannelOption((option) => option.setName('target').setDescription('Destination voice channel').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(true))
       .addChannelOption((option) => option.setName('from').setDescription('Source voice channel (leave blank to move everyone across all VCs)').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(false))),
+  new SlashCommandBuilder().setName('mute').setDescription('Voice channel moderation tools').setDefaultMemberPermissions(PermissionFlagsBits.MuteMembers).setDMPermission(false)
+    .addSubcommand((sub) => sub.setName('all').setDescription('Server mute all members in your current voice channel')),
+  new SlashCommandBuilder().setName('unmute').setDescription('Voice channel moderation tools').setDefaultMemberPermissions(PermissionFlagsBits.MuteMembers).setDMPermission(false)
+    .addSubcommand((sub) => sub.setName('all').setDescription('Server unmute all members in your current voice channel')),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
