@@ -4,30 +4,31 @@ module.exports = {
   name: 'mute',
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
+    const voiceChannel = interaction.member?.voice?.channel;
 
+    // 1. Verify user is in a voice channel
+    if (!voiceChannel) {
+      return interaction.reply({
+        content: '❌ You must be connected to a voice channel to use this command.',
+        ephemeral: true,
+      });
+    }
+
+    // 2. Verify bot has permission
+    const botMember = interaction.guild.members.me;
+    if (!botMember.permissions.has(PermissionFlagsBits.MuteMembers)) {
+      return interaction.reply({
+        content: '❌ I do not have permission to mute members in this server.',
+        ephemeral: true,
+      });
+    }
+
+    // ==========================================
+    // SUBCOMMAND: /mute all
+    // ==========================================
     if (subcommand === 'all') {
-      const voiceChannel = interaction.member?.voice?.channel;
-
-      // 1. Verify user is connected to a voice channel
-      if (!voiceChannel) {
-        return interaction.reply({
-          content: '❌ You must be connected to a voice channel to use this command.',
-          ephemeral: true,
-        });
-      }
-
-      // 2. Verify bot has permission to mute members in this guild/channel
-      const botMember = interaction.guild.members.me;
-      if (!botMember.permissions.has(PermissionFlagsBits.MuteMembers)) {
-        return interaction.reply({
-          content: '❌ I do not have permission to mute members in this server.',
-          ephemeral: true,
-        });
-      }
-
       await interaction.deferReply();
 
-      // 3. Filter members in the VC that are not already server-muted and not the bot itself
       const membersToMute = voiceChannel.members.filter(
         (member) => !member.voice.serverMute && member.id !== interaction.client.user.id
       );
@@ -41,16 +42,12 @@ module.exports = {
       let mutedCount = 0;
       let failedCount = 0;
 
-      // 4. Mute all eligible members in parallel
       await Promise.all(
         membersToMute.map(async (member) => {
           try {
-            await member.voice.setMute(
-              true,
-              `Muted by ${interaction.user.tag} using /mute all`
-            );
+            await member.voice.setMute(true, `Muted by ${interaction.user.tag} via /mute all`);
             mutedCount++;
-          } catch (error) {
+          } catch {
             failedCount++;
           }
         })
@@ -58,7 +55,7 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(failedCount > 0 ? 0xffa500 : 0x2ecc71)
-        .setTitle('🔇 Voice Channel Mute')
+        .setTitle('🔇 Voice Channel Mute (All)')
         .setDescription(`Successfully server-muted **${mutedCount}** member(s) in **${voiceChannel.name}**.`)
         .setFooter({ text: `Requested by ${interaction.user.tag}` })
         .setTimestamp();
@@ -66,7 +63,117 @@ module.exports = {
       if (failedCount > 0) {
         embed.addFields({
           name: '⚠️ Notice',
-          value: `Could not mute **${failedCount}** member(s) due to role hierarchy limitations.`,
+          value: `Could not mute **${failedCount}** member(s) due to role hierarchy limits.`,
+        });
+      }
+
+      return interaction.editReply({ embeds: [embed] });
+    }
+
+    // ==========================================
+    // SUBCOMMAND: /mute users
+    // ==========================================
+    if (subcommand === 'users') {
+      const targetRole = interaction.options.getRole('role');
+      const nameKeyword = interaction.options.getString('name_contains')?.trim();
+      const guildTagQuery = interaction.options.getString('guild_tag')?.trim();
+
+      // Require at least one filter option
+      if (!targetRole && !nameKeyword && !guildTagQuery) {
+        return interaction.reply({
+          content: '❌ Please specify at least one filter option: `role`, `name_contains`, or `guild_tag`.',
+          ephemeral: true,
+        });
+      }
+
+      await interaction.deferReply();
+
+      const membersToMute = voiceChannel.members.filter((member) => {
+        if (member.id === interaction.client.user.id) return false;
+        if (member.voice.serverMute) return false;
+
+        // 1. Role filter
+        const matchesRole = targetRole ? member.roles.cache.has(targetRole.id) : true;
+
+        // 2. Display name / nickname keyword filter
+        const matchesName = nameKeyword
+          ? member.displayName.toLowerCase().includes(nameKeyword.toLowerCase())
+          : true;
+
+        // 3. Guild / Server Tag filter (checks official Discord profile clan tag & bracketed display tags)
+        let matchesGuildTag = true;
+        if (guildTagQuery) {
+          const officialTag = member.user?.clan?.tag || member.user?._rawData?.clan?.tag || null;
+          const queryLower = guildTagQuery.toLowerCase();
+
+          if (queryLower === 'any') {
+            matchesGuildTag = Boolean(officialTag);
+          } else {
+            const matchesOfficial = officialTag ? officialTag.toLowerCase() === queryLower : false;
+            const matchesBracketed =
+              member.displayName.toLowerCase().includes(`[${queryLower}]`) ||
+              member.displayName.toLowerCase().includes(`(${queryLower})`);
+
+            matchesGuildTag = matchesOfficial || matchesBracketed;
+          }
+        }
+
+        return matchesRole && matchesName && matchesGuildTag;
+      });
+
+      if (membersToMute.size === 0) {
+        return interaction.editReply({
+          content: `ℹ️ No unmuted members in **${voiceChannel.name}** matched your filter criteria.`,
+        });
+      }
+
+      let mutedCount = 0;
+      let failedCount = 0;
+      const mutedUsernames = [];
+
+      await Promise.all(
+        membersToMute.map(async (member) => {
+          try {
+            await member.voice.setMute(
+              true,
+              `Muted by ${interaction.user.tag} via /mute users`
+            );
+            mutedCount++;
+            mutedUsernames.push(member.displayName);
+          } catch {
+            failedCount++;
+          }
+        })
+      );
+
+      // Build criteria description for feedback
+      const filterDetails = [];
+      if (targetRole) filterDetails.push(`Role: **@${targetRole.name}**`);
+      if (nameKeyword) filterDetails.push(`Name containing: \`${nameKeyword}\``);
+      if (guildTagQuery) filterDetails.push(`Server/Guild Tag: \`${guildTagQuery}\``);
+
+      const embed = new EmbedBuilder()
+        .setColor(failedCount > 0 ? 0xffa500 : 0x2ecc71)
+        .setTitle('🔇 Voice Channel Mute (Filtered)')
+        .setDescription(
+          `Muted **${mutedCount}** member(s) matching ${filterDetails.join(' and ')} in **${voiceChannel.name}**.`
+        )
+        .setFooter({ text: `Requested by ${interaction.user.tag}` })
+        .setTimestamp();
+
+      if (mutedUsernames.length > 0) {
+        embed.addFields({
+          name: 'Targeted Members',
+          value:
+            mutedUsernames.map((name) => `• ${name}`).slice(0, 20).join('\n') +
+            (mutedUsernames.length > 20 ? `\n*...and ${mutedUsernames.length - 20} more*` : ''),
+        });
+      }
+
+      if (failedCount > 0) {
+        embed.addFields({
+          name: '⚠️ Notice',
+          value: `Could not mute **${failedCount}** member(s) due to role hierarchy limits.`,
         });
       }
 
