@@ -21,9 +21,19 @@ const commands = [
   new SlashCommandBuilder().setName('valli').setDescription('Control the Valli lockdown mode').setDefaultMemberPermissions(PermissionFlagsBits.Administrator).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('on').setDescription('Enable Valli lockdown mode'))
     .addSubcommand((sub) => sub.setName('off').setDescription('Disable Valli lockdown mode and restore server')),
-  new SlashCommandBuilder().setName('welcome').setDescription('Server welcome system settings').setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles).setDMPermission(false)
+  
+  // Welcome System Configuration
+  new SlashCommandBuilder().setName('welcome').setDescription('Server welcome system settings').setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild).setDMPermission(false)
+    .addSubcommand((sub) => sub.setName('on').setDescription('Enable welcome messages in a channel')
+      .addChannelOption((option) => option.setName('channel').setDescription('Channel where welcome cards are sent').addChannelTypes(ChannelType.GuildText).setRequired(true)))
+    .addSubcommand((sub) => sub.setName('off').setDescription('Disable welcome cards'))
+    .addSubcommand((sub) => sub.setName('rules').setDescription('Set the server rules channel')
+      .addChannelOption((option) => option.setName('channel').setDescription('Select the rules channel').addChannelTypes(ChannelType.GuildText).setRequired(true)))
+    .addSubcommand((sub) => sub.setName('selfrole').setDescription('Set the self-roles channel')
+      .addChannelOption((option) => option.setName('channel').setDescription('Select the self-role channel').addChannelTypes(ChannelType.GuildText).setRequired(true)))
     .addSubcommand((sub) => sub.setName('role').setDescription('Configure the automatic role assigned when a member joins')
       .addRoleOption((option) => option.setName('role').setDescription('Select the role to give to new members').setRequired(true))),
+
   new SlashCommandBuilder().setName('purge').setDescription('Bulk moderation message deletion tools').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('user').setDescription("Delete a user's messages across all channels or a specific channel")
       .addUserOption((option) => option.setName('target').setDescription('Select the server member').setRequired(true))
