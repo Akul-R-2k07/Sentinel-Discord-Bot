@@ -76,11 +76,10 @@ const commands = [
   new SlashCommandBuilder().setName('disconnect').setDescription('Voice channel disconnection tools').setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('all').setDescription('Disconnect all members from a voice channel')
       .addChannelOption((option) => option.setName('channel').setDescription('Target voice channel to disconnect everyone from').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(true)))
-    .addSubcommand((sub) => sub.setName('users').setDescription('Disconnect members from a voice channel by role, name, or guild tag')
+    .addSubcommand((sub) => sub.setName('users').setDescription('Disconnect members from a voice channel by role or name keyword')
       .addChannelOption((option) => option.setName('channel').setDescription('Target voice channel').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(true))
       .addRoleOption((option) => option.setName('role').setDescription('Disconnect members who have this role'))
-      .addStringOption((option) => option.setName('name_contains').setDescription('Disconnect members whose display name contains this text/keyword'))
-      .addStringOption((option) => option.setName('guild_tag').setDescription('Disconnect members by server/clan tag (enter tag like CGC, or type "any")'))),
+      .addStringOption((option) => option.setName('name_contains').setDescription('Disconnect members whose display name contains this text/keyword'))),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);

@@ -4,9 +4,13 @@ module.exports = {
   name: 'disconnect',
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
-    const targetChannel = interaction.options.getChannel('channel');
+    const channelOption = interaction.options.getChannel('channel');
 
-    // 1. Verify bot permissions (Discord uses 'MoveMembers' for disconnecting voice members)
+    // Resolve up-to-date channel from cache
+    const targetChannel =
+      interaction.guild.channels.cache.get(channelOption.id) || channelOption;
+
+    // 1. Verify bot permissions
     const botMember = interaction.guild.members.me;
     if (!botMember.permissions.has(PermissionFlagsBits.MoveMembers)) {
       return interaction.reply({
@@ -15,7 +19,7 @@ module.exports = {
       });
     }
 
-    // 2. Check if the target voice channel has members
+    // 2. Check if voice channel has members
     if (!targetChannel.members || targetChannel.members.size === 0) {
       return interaction.reply({
         content: `ℹ️ There is no one connected to ${targetChannel}.`,
@@ -74,50 +78,27 @@ module.exports = {
     if (subcommand === 'users') {
       const targetRole = interaction.options.getRole('role');
       const nameKeyword = interaction.options.getString('name_contains')?.trim();
-      const guildTagQuery = interaction.options.getString('guild_tag')?.trim();
 
-      // Require at least one filter
-      if (!targetRole && !nameKeyword && !guildTagQuery) {
+      // Must provide at least one filter
+      if (!targetRole && !nameKeyword) {
         return interaction.reply({
-          content:
-            '❌ Please specify at least one filter option: `role`, `name_contains`, or `guild_tag`.',
+          content: '❌ Please specify at least one filter option: `role` or `name_contains`.',
           ephemeral: true,
         });
       }
 
       await interaction.deferReply();
 
-      // Filter members in the target VC
       const membersToDisconnect = targetChannel.members.filter((member) => {
         if (member.id === interaction.client.user.id) return false;
 
-        // 1. Role match
         const matchesRole = targetRole ? member.roles.cache.has(targetRole.id) : true;
-
-        // 2. Name / keyword match
         const matchesName = nameKeyword
-          ? member.displayName.toLowerCase().includes(nameKeyword.toLowerCase())
+          ? member.displayName.toLowerCase().includes(nameKeyword.toLowerCase()) ||
+            member.user.username.toLowerCase().includes(nameKeyword.toLowerCase())
           : true;
 
-        // 3. Guild / Server Tag match (official clan tag or bracketed display tag)
-        let matchesGuildTag = true;
-        if (guildTagQuery) {
-          const officialTag = member.user?.clan?.tag || member.user?._rawData?.clan?.tag || null;
-          const queryLower = guildTagQuery.toLowerCase();
-
-          if (queryLower === 'any') {
-            matchesGuildTag = Boolean(officialTag);
-          } else {
-            const matchesOfficial = officialTag ? officialTag.toLowerCase() === queryLower : false;
-            const matchesBracketed =
-              member.displayName.toLowerCase().includes(`[${queryLower}]`) ||
-              member.displayName.toLowerCase().includes(`(${queryLower})`);
-
-            matchesGuildTag = matchesOfficial || matchesBracketed;
-          }
-        }
-
-        return matchesRole && matchesName && matchesGuildTag;
+        return matchesRole && matchesName;
       });
 
       if (membersToDisconnect.size === 0) {
@@ -144,11 +125,9 @@ module.exports = {
         })
       );
 
-      // Build criteria description for feedback
       const filterDetails = [];
       if (targetRole) filterDetails.push(`Role: **@${targetRole.name}**`);
       if (nameKeyword) filterDetails.push(`Name containing: \`${nameKeyword}\``);
-      if (guildTagQuery) filterDetails.push(`Server/Guild Tag: \`${guildTagQuery}\``);
 
       const embed = new EmbedBuilder()
         .setColor(failedCount > 0 ? 0xffa500 : 0xe74c3c)

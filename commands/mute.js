@@ -1,12 +1,74 @@
 const { PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function checkGuildTagMatch(member, query) {
+  const queryLower = query.toLowerCase().trim();
+
+  let user = member.user;
+  try {
+    user = await member.client.users.fetch(member.id, { force: true });
+  } catch {
+    user = member.user;
+  }
+
+  const officialTag = user?.clan?.tag?.toLowerCase() || null;
+  if (queryLower === 'any') {
+    if (officialTag) return true;
+  } else if (officialTag && officialTag === queryLower) {
+    return true;
+  }
+
+  const names = [
+    member.displayName,
+    member.user.globalName,
+    member.user.username,
+  ]
+    .filter(Boolean)
+    .map((n) => n.toLowerCase());
+
+  for (const name of names) {
+    if (queryLower === 'any') {
+      if (/(\[|\(|\{)[a-z0-9_-]{2,8}(\]|\)|\})/i.test(name)) return true;
+    } else {
+      if (
+        name.includes(`[${queryLower}]`) ||
+        name.includes(`(${queryLower})`) ||
+        name.includes(`{${queryLower}}`) ||
+        name.includes(`<${queryLower}>`)
+      ) {
+        return true;
+      }
+
+      if (
+        name.includes(`${queryLower} |`) ||
+        name.includes(`| ${queryLower}`) ||
+        name.includes(`${queryLower} -`) ||
+        name.includes(`- ${queryLower}`) ||
+        name.includes(`${queryLower} •`) ||
+        name.includes(`• ${queryLower}`)
+      ) {
+        return true;
+      }
+
+      const wordRegex = new RegExp(`(^|[\\s_.])${escapeRegex(queryLower)}([\\s_.]|$)`, 'i');
+      if (wordRegex.test(name)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 module.exports = {
   name: 'mute',
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
     const voiceChannel = interaction.member?.voice?.channel;
 
-    // 1. Verify user is in a voice channel
     if (!voiceChannel) {
       return interaction.reply({
         content: '❌ You must be connected to a voice channel to use this command.',
@@ -14,7 +76,6 @@ module.exports = {
       });
     }
 
-    // 2. Verify bot has permission
     const botMember = interaction.guild.members.me;
     if (!botMember.permissions.has(PermissionFlagsBits.MuteMembers)) {
       return interaction.reply({
@@ -78,7 +139,6 @@ module.exports = {
       const nameKeyword = interaction.options.getString('name_contains')?.trim();
       const guildTagQuery = interaction.options.getString('guild_tag')?.trim();
 
-      // Require at least one filter option
       if (!targetRole && !nameKeyword && !guildTagQuery) {
         return interaction.reply({
           content: '❌ Please specify at least one filter option: `role`, `name_contains`, or `guild_tag`.',
@@ -88,40 +148,27 @@ module.exports = {
 
       await interaction.deferReply();
 
-      const membersToMute = voiceChannel.members.filter((member) => {
-        if (member.id === interaction.client.user.id) return false;
-        if (member.voice.serverMute) return false;
+      const membersToMute = [];
+      for (const [, member] of voiceChannel.members) {
+        if (member.id === interaction.client.user.id) continue;
+        if (member.voice.serverMute) continue;
 
-        // 1. Role filter
         const matchesRole = targetRole ? member.roles.cache.has(targetRole.id) : true;
-
-        // 2. Display name / nickname keyword filter
         const matchesName = nameKeyword
           ? member.displayName.toLowerCase().includes(nameKeyword.toLowerCase())
           : true;
 
-        // 3. Guild / Server Tag filter (checks official Discord profile clan tag & bracketed display tags)
         let matchesGuildTag = true;
         if (guildTagQuery) {
-          const officialTag = member.user?.clan?.tag || member.user?._rawData?.clan?.tag || null;
-          const queryLower = guildTagQuery.toLowerCase();
-
-          if (queryLower === 'any') {
-            matchesGuildTag = Boolean(officialTag);
-          } else {
-            const matchesOfficial = officialTag ? officialTag.toLowerCase() === queryLower : false;
-            const matchesBracketed =
-              member.displayName.toLowerCase().includes(`[${queryLower}]`) ||
-              member.displayName.toLowerCase().includes(`(${queryLower})`);
-
-            matchesGuildTag = matchesOfficial || matchesBracketed;
-          }
+          matchesGuildTag = await checkGuildTagMatch(member, guildTagQuery);
         }
 
-        return matchesRole && matchesName && matchesGuildTag;
-      });
+        if (matchesRole && matchesName && matchesGuildTag) {
+          membersToMute.push(member);
+        }
+      }
 
-      if (membersToMute.size === 0) {
+      if (membersToMute.length === 0) {
         return interaction.editReply({
           content: `ℹ️ No unmuted members in **${voiceChannel.name}** matched your filter criteria.`,
         });
@@ -146,7 +193,6 @@ module.exports = {
         })
       );
 
-      // Build criteria description for feedback
       const filterDetails = [];
       if (targetRole) filterDetails.push(`Role: **@${targetRole.name}**`);
       if (nameKeyword) filterDetails.push(`Name containing: \`${nameKeyword}\``);
