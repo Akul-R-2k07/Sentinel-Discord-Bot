@@ -67,10 +67,9 @@ const commands = [
       .addChannelOption((option) => option.setName('from').setDescription('Source voice channel (leave blank to move everyone across all VCs)').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(false))),
   new SlashCommandBuilder().setName('mute').setDescription('Voice channel moderation tools').setDefaultMemberPermissions(PermissionFlagsBits.MuteMembers).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('all').setDescription('Server mute all members in your current voice channel'))
-    .addSubcommand((sub) => sub.setName('users').setDescription('Server mute members in your current VC by role, name, or guild tag')
+    .addSubcommand((sub) => sub.setName('users').setDescription('Server mute members in your current VC by role or name keyword')
       .addRoleOption((option) => option.setName('role').setDescription('Mute members who have this role'))
-      .addStringOption((option) => option.setName('name_contains').setDescription('Mute members whose display name contains this text/keyword'))
-      .addStringOption((option) => option.setName('guild_tag').setDescription('Mute by server/clan tag (enter specific tag like CGC, or type "any")'))),
+      .addStringOption((option) => option.setName('name_contains').setDescription('Mute members whose display name contains this text/keyword'))),
   new SlashCommandBuilder().setName('unmute').setDescription('Voice channel moderation tools').setDefaultMemberPermissions(PermissionFlagsBits.MuteMembers).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('all').setDescription('Server unmute all members in your current voice channel')),
   new SlashCommandBuilder().setName('disconnect').setDescription('Voice channel disconnection tools').setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers).setDMPermission(false)

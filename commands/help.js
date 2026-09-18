@@ -65,10 +65,10 @@ module.exports = {
         name: '🔊 Voice Channel Moderation',
         value: [
           '`/mute all` — Server-mute all members in your current VC.',
-          '`/mute users [role] [name_contains] [guild_tag]` — Mute members by role, name keywords, or clan/server tags.',
+          '`/mute users [role] [name_contains]` — Server-mute members in your VC by role or name keyword.',
           '`/unmute all` — Server-unmute all members in your current VC.',
           '`/disconnect all <channel>` — Disconnect all members from a specific voice channel.',
-          '`/disconnect users <channel> [role] [name_contains]` — Disconnect members by role or display name keyword.',
+          '`/disconnect users <channel> [role] [name_contains]` — Disconnect members by role or name keyword.',
           '`/move all <target> [from]` — Relocate voice channel members into a destination VC.',
         ].join('\n'),
       });
