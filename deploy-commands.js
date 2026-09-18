@@ -22,7 +22,7 @@ const commands = [
     .addSubcommand((sub) => sub.setName('on').setDescription('Enable Valli lockdown mode'))
     .addSubcommand((sub) => sub.setName('off').setDescription('Disable Valli lockdown mode and restore server')),
   
-  // Welcome System Configuration
+  // Welcome System
   new SlashCommandBuilder().setName('welcome').setDescription('Server welcome system settings').setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('on').setDescription('Enable welcome messages in a channel')
       .addChannelOption((option) => option.setName('channel').setDescription('Channel where welcome cards are sent').addChannelTypes(ChannelType.GuildText).setRequired(true)))
@@ -33,6 +33,13 @@ const commands = [
       .addChannelOption((option) => option.setName('channel').setDescription('Select the self-role channel').addChannelTypes(ChannelType.GuildText).setRequired(true)))
     .addSubcommand((sub) => sub.setName('role').setDescription('Configure the automatic role assigned when a member joins')
       .addRoleOption((option) => option.setName('role').setDescription('Select the role to give to new members').setRequired(true))),
+
+  // Goodbye System
+  new SlashCommandBuilder().setName('goodbye').setDescription('Server goodbye message settings').setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild).setDMPermission(false)
+    .addSubcommand((sub) => sub.setName('on').setDescription('Enable goodbye messages in a channel')
+      .addChannelOption((option) => option.setName('channel').setDescription('Channel where goodbye cards are sent').addChannelTypes(ChannelType.GuildText).setRequired(true)))
+    .addSubcommand((sub) => sub.setName('off').setDescription('Disable goodbye messages'))
+    .addSubcommand((sub) => sub.setName('test').setDescription('Test and preview the dynamic goodbye card')),
 
   new SlashCommandBuilder().setName('purge').setDescription('Bulk moderation message deletion tools').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('user').setDescription("Delete a user's messages across all channels or a specific channel")
