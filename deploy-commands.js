@@ -59,6 +59,8 @@ const commands = [
     .addSubcommand((sub) => sub.setName('react').setDescription('React with an emoji whenever someone mentions you')
       .addStringOption((option) => option.setName('emoji').setDescription('Emoji, custom emoji ID, or type "off" to remove').setRequired(true)))
     .addSubcommand((sub) => sub.setName('respond').setDescription('Set an automated reply message when someone mentions you')),
+  
+  // Voice Controls
   new SlashCommandBuilder().setName('move').setDescription('Mass voice channel relocation tools').setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('all').setDescription('Move members in voice channels to a destination channel')
       .addChannelOption((option) => option.setName('target').setDescription('Destination voice channel').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(true))
@@ -71,6 +73,14 @@ const commands = [
       .addStringOption((option) => option.setName('guild_tag').setDescription('Mute by server/clan tag (enter specific tag like CGC, or type "any")'))),
   new SlashCommandBuilder().setName('unmute').setDescription('Voice channel moderation tools').setDefaultMemberPermissions(PermissionFlagsBits.MuteMembers).setDMPermission(false)
     .addSubcommand((sub) => sub.setName('all').setDescription('Server unmute all members in your current voice channel')),
+  new SlashCommandBuilder().setName('disconnect').setDescription('Voice channel disconnection tools').setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers).setDMPermission(false)
+    .addSubcommand((sub) => sub.setName('all').setDescription('Disconnect all members from a voice channel')
+      .addChannelOption((option) => option.setName('channel').setDescription('Target voice channel to disconnect everyone from').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(true)))
+    .addSubcommand((sub) => sub.setName('users').setDescription('Disconnect members from a voice channel by role, name, or guild tag')
+      .addChannelOption((option) => option.setName('channel').setDescription('Target voice channel').addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice).setRequired(true))
+      .addRoleOption((option) => option.setName('role').setDescription('Disconnect members who have this role'))
+      .addStringOption((option) => option.setName('name_contains').setDescription('Disconnect members whose display name contains this text/keyword'))
+      .addStringOption((option) => option.setName('guild_tag').setDescription('Disconnect members by server/clan tag (enter tag like CGC, or type "any")'))),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
