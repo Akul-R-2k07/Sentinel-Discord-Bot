@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'bot-config.json');
+const GIF_PATH = path.join(__dirname, '..', 'assets', 'welcome.gif');
 
 function getConfig() {
   if (!fs.existsSync(CONFIG_PATH)) return {};
@@ -89,7 +90,7 @@ module.exports = {
       });
     }
 
-    // 5. /welcome role <role> (Auto-assigned role on join)
+    // 5. /welcome role <role>
     if (subcommand === 'role') {
       const role = interaction.options.getRole('role');
       config[guildId].welcomeRoleId = role.id;
@@ -98,6 +99,49 @@ module.exports = {
       return interaction.reply({
         content: `🎖️ Automatic newcomer role set to **@${role.name}**.`,
       });
+    }
+
+    // 6. /welcome test (Preview the welcome card immediately)
+    if (subcommand === 'test') {
+      await interaction.deferReply();
+
+      const member = interaction.member;
+      const welcome = config[guildId].welcome || {};
+
+      const rulesText = welcome.rulesChannelId ? `<#${welcome.rulesChannelId}>` : 'rules';
+      const selfRoleText = welcome.selfRoleChannelId ? `<#${welcome.selfRoleChannelId}>` : 'self-roles';
+      const displayName = `@${member.displayName}`;
+
+      const embed = new EmbedBuilder()
+        .setColor(0xe50000)
+        .setDescription(
+          [
+            `Hey **${displayName}**`,
+            `Welcome To **${member.guild.name}** 🔥`,
+            '',
+            `**Read Server Rules** { ${rulesText} }`,
+            '',
+            `**Self-Role** { ${selfRoleText} }`,
+            '',
+            `thanks for joining`,
+            `**${displayName}**`,
+          ].join('\n')
+        )
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setFooter({
+          text: `Member #${member.guild.memberCount} • ${member.guild.name}`,
+          iconURL: member.guild.iconURL({ dynamic: true }),
+        })
+        .setTimestamp();
+
+      const files = [];
+      if (fs.existsSync(GIF_PATH)) {
+        const attachment = new AttachmentBuilder(GIF_PATH, { name: 'welcome.gif' });
+        files.push(attachment);
+        embed.setImage('attachment://welcome.gif');
+      }
+
+      return interaction.editReply({ embeds: [embed], files });
     }
   },
 };

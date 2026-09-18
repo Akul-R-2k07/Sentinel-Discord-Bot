@@ -32,7 +32,8 @@ const commands = [
     .addSubcommand((sub) => sub.setName('selfrole').setDescription('Set the self-roles channel')
       .addChannelOption((option) => option.setName('channel').setDescription('Select the self-role channel').addChannelTypes(ChannelType.GuildText).setRequired(true)))
     .addSubcommand((sub) => sub.setName('role').setDescription('Configure the automatic role assigned when a member joins')
-      .addRoleOption((option) => option.setName('role').setDescription('Select the role to give to new members').setRequired(true))),
+      .addRoleOption((option) => option.setName('role').setDescription('Select the role to give to new members').setRequired(true)))
+    .addSubcommand((sub) => sub.setName('test').setDescription('Test and preview the dynamic welcome card')),
 
   // Goodbye System
   new SlashCommandBuilder().setName('goodbye').setDescription('Server goodbye message settings').setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild).setDMPermission(false)

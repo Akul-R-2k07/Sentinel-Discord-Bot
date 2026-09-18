@@ -6,25 +6,28 @@ module.exports = {
     const member = interaction.member;
     const permissions = member.permissions;
 
-    // Check member permissions to dynamically show/hide sections
+    // Permission checks
     const canModerateVoice =
       permissions.has(PermissionFlagsBits.MuteMembers) ||
       permissions.has(PermissionFlagsBits.MoveMembers) ||
+      permissions.has(PermissionFlagsBits.Administrator);
+
+    const canManageServer =
+      permissions.has(PermissionFlagsBits.ManageGuild) ||
+      permissions.has(PermissionFlagsBits.ManageRoles) ||
       permissions.has(PermissionFlagsBits.Administrator);
 
     const canModerateText =
       permissions.has(PermissionFlagsBits.ManageMessages) ||
       permissions.has(PermissionFlagsBits.Administrator);
 
-    const canAdminServer =
-      permissions.has(PermissionFlagsBits.ManageRoles) ||
-      permissions.has(PermissionFlagsBits.Administrator);
+    const isAdmin = permissions.has(PermissionFlagsBits.Administrator);
 
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
       .setTitle('📖 Command Directory & Help')
       .setDescription(
-        'Here is a list of commands available to you based on your server permissions.'
+        'Here is the complete list of commands available to you based on your server permissions.'
       )
       .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
       .setFooter({
@@ -33,44 +36,65 @@ module.exports = {
       })
       .setTimestamp();
 
-    // 1. Leveling & Activity Stats (Available to everyone)
+    // 1. Leveling & Activity Stats (Everyone)
     embed.addFields({
       name: '📊 Leveling & Analytics',
       value: [
         '`/my level` — View your current level, XP, and rank progress.',
         '`/user level <target>` — Inspect another member’s level and XP.',
         '`/userinfo [target]` — Activity metrics over 1d, 7d, & 14d periods.',
-        '`/serverinfo` — Server-wide activity, top channels, & engagement stats.',
+        '`/serverinfo` — Server-wide aggregate activity and engagement stats.',
         '`/leaderboard` — Display top ranked members by level and XP.',
       ].join('\n'),
     });
 
-    // 2. Automation & Utility (Available to everyone)
+    // 2. Automation & Utilities (Everyone)
     embed.addFields({
-      name: '⚙️ Utilities & Mentions',
+      name: '⚙️ Utilities & Automation',
       value: [
-        '`/ping` — Test bot latency and WebSocket ping.',
+        '`/ping` — Test bot response time and WebSocket ping.',
         '`/help` — Display this interactive help directory.',
         '`/auto react <emoji>` — Auto-react with an emoji when mentioned (use `off` to disable).',
-        '`/auto respond` — Set an automated message reply when mentioned.',
+        '`/auto respond` — Set an automated text reply when mentioned.',
       ].join('\n'),
     });
 
-    // 3. Voice Moderation (Shown if user has Mute/Move permissions)
+    // 3. Voice Moderation (Voice Mods & Admins)
     if (canModerateVoice) {
       embed.addFields({
         name: '🔊 Voice Channel Moderation',
         value: [
           '`/mute all` — Server-mute all members in your current VC.',
-          '`/mute users` — Filter-mute in your VC using `role`, `name_contains`, or `guild_tag` (e.g. `CGC` or `any`).',
+          '`/mute users [role] [name_contains] [guild_tag]` — Mute members by role, name keywords, or clan/server tags (e.g. `CGC` or `any`).',
           '`/unmute all` — Server-unmute all members in your current VC.',
           '`/move all <target> [from]` — Relocate voice channel members into a destination VC.',
         ].join('\n'),
       });
     }
 
-    // 4. Message Moderation & Server Administration (Shown if user has Manage Messages/Roles/Admin)
-    if (canModerateText || canAdminServer) {
+    // 4. Welcome & Goodbye System (Server Managers & Admins)
+    if (canManageServer) {
+      embed.addFields({
+        name: '👋 Welcome & Goodbye System',
+        value: [
+          '**Welcome System:**',
+          '• `/welcome on <channel>` — Activate animated welcome cards in a channel.',
+          '• `/welcome off` — Disable welcome cards.',
+          '• `/welcome rules <channel>` — Set the server rules channel mention.',
+          '• `/welcome selfrole <channel>` — Set the self-roles channel mention.',
+          '• `/welcome role <role>` — Set the auto-assigned newcomer role.',
+          '• `/welcome test` — Preview the dynamic welcome card with animated GIF.',
+          '',
+          '**Goodbye System:**',
+          '• `/goodbye on <channel>` — Activate dynamic "Wasted" goodbye cards.',
+          '• `/goodbye off` — Disable goodbye cards.',
+          '• `/goodbye test` — Preview the generated "Wasted" card with your avatar & name.',
+        ].join('\n'),
+      });
+    }
+
+    // 5. Text Moderation & Server Administration (Staff & Admins)
+    if (canModerateText || isAdmin) {
       const adminLines = [];
 
       if (canModerateText) {
@@ -81,16 +105,12 @@ module.exports = {
         );
       }
 
-      if (permissions.has(PermissionFlagsBits.ManageRoles) || permissions.has(PermissionFlagsBits.Administrator)) {
-        adminLines.push('`/welcome role <role>` — Set auto-assigned role for newcomers.');
-      }
-
-      if (permissions.has(PermissionFlagsBits.Administrator)) {
-        adminLines.push('`/valli <on|off>` — Toggle emergency lockdown mode.');
+      if (isAdmin) {
+        adminLines.push('`/valli <on|off>` — Emergency server lockdown toggle.');
       }
 
       embed.addFields({
-        name: '🛡️ Server Moderation & Administration',
+        name: '🛡️ Moderation & Server Lockdown',
         value: adminLines.join('\n'),
       });
     }
