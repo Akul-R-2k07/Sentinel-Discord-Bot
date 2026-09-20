@@ -106,3 +106,95 @@ A powerful, modular Discord bot built with **Discord.js v14** featuring advanced
 ├── index.js                 # Main application entry point
 ├── levels.json              # Persistent XP and leveling store
 └── package.json
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+* **Node.js** v18.0.0 or v20.0.0+
+* **npm** v8.0.0+
+* A Discord Bot Token from the [Discord Developer Portal](https://discord.com/developers/applications)
+
+### 1. Enable Privileged Gateway Intents
+In the **Discord Developer Portal**:
+1. Open your Application → **Bot** tab.
+2. Under **Privileged Gateway Intents**, enable:
+   * ✅ **Server Members Intent**
+   * ✅ **Message Content Intent**
+
+### 2. Clone and Install Dependencies
+```bash
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+npm install
+```
+
+### 3. Configure Environment Variables
+Create a `.env` file in the root directory:
+```env
+DISCORD_TOKEN=your_bot_token_here
+CLIENT_ID=your_application_client_id
+GUILD_ID=your_target_guild_id
+```
+
+### 4. Register Slash Commands
+Sync your slash commands with your Discord server:
+```bash
+npm run deploy
+```
+
+### 5. Start the Bot
+```bash
+npm start
+```
+
+---
+
+## 📋 Slash Command Overview
+
+| Command | Subcommands / Options | Required Permission | Description |
+| :--- | :--- | :--- | :--- |
+| `/mute` | `all` | `MuteMembers` | Server-mutes all users in your current voice channel. |
+| `/mute` | `users [role] [name_contains]` | `MuteMembers` | Mutes users in your VC matching a role or name keyword. |
+| `/unmute` | `all` | `MuteMembers` | Server-unmutes all users in your current voice channel. |
+| `/disconnect` | `all <channel>` | `MoveMembers` | Disconnects all members from a voice channel. |
+| `/disconnect` | `users <channel> [role] [name]` | `MoveMembers` | Disconnects users matching role or name filters. |
+| `/move` | `all <target> [from]` | `MoveMembers` | Relocates voice channel members to a target VC. |
+| `/welcome` | `on <channel>` / `off` | `ManageGuild` | Toggles dynamic welcome card announcements. |
+| `/welcome` | `rules <channel>` / `selfrole <channel>` | `ManageGuild` | Configures mention channels in the welcome embed. |
+| `/welcome` | `role <role>` | `ManageRoles` | Sets the role auto-assigned to new members. |
+| `/welcome` | `test` | `ManageGuild` | Previews the dynamic welcome card. |
+| `/goodbye` | `on <channel>` / `off` | `ManageGuild` | Toggles dynamic "Wasted" goodbye canvas cards. |
+| `/goodbye` | `test` | `ManageGuild` | Previews the generated goodbye card. |
+| `/purge` | `channel` / `user` / `all` | `ManageMessages` | Bulk-deletes messages with optional age filters. |
+| `/valli` | `on` / `off` | `Administrator` | Controls emergency server lockdown mode. |
+| `/auto` | `react <emoji>` / `respond` | `@everyone` | Configures personal mention automated reactions. |
+| `/my` | `level` | `@everyone` | Checks your personal level and XP progress. |
+| `/userinfo` | `[target]` | `@everyone` | Detailed member analytics (1d, 7d, and 14d periods). |
+| `/serverinfo`| — | `@everyone` | Server-wide aggregate metrics and top channels. |
+| `/leaderboard`| — | `@everyone` | Server leaderboard sorted by level and XP. |
+| `/help` | — | `@everyone` | Permission-aware command manual. |
+| `/ping` | — | `@everyone` | Bot latency and WebSocket heartbeat. |
+
+---
+
+## 🌐 24/7 Deployment
+
+This bot requires persistent disk storage for `levels.json`, `bot-config.json`, `analytics.json`, and the `assets/` folder.
+
+### Recommended Free Hosting:
+* **[Bot-Hosting.net](https://bot-hosting.net/)** (Free Pterodactyl panel, zero Linux maintenance)
+* **Linux Cloud VPS (Oracle Cloud / GCP / AWS)** using `PM2`:
+  ```bash
+  sudo npm install -g pm2
+  pm2 start index.js --name "discord-bot"
+  pm2 startup
+  pm2 save
+  ```
+
+---
+
+## 📄 License
+This project is licensed under the [MIT License](LICENSE).
